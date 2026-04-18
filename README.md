@@ -13,11 +13,17 @@ Out of the box, the upstream stack **crashes** on AMD in five distinct places. T
 ```bash
 git clone https://github.com/Dev-next-gen/flux-amd-rocm
 cd flux-amd-rocm
-./setup.sh                           # detects your GPU, sets env vars, installs deps
+python -m venv venv && source venv/bin/activate
+./setup.sh                           # detects your GPU, writes .env.rocm, installs deps
+source .env.rocm                     # MUST be sourced — sets AOTriton, hipBLASLt, etc.
 export HF_TOKEN=hf_...               # FLUX.1-dev is gated
 python generate.py "a dragon coiled around a medieval tower at sunset" \
   --out dragon.png
 ```
+
+> Without `source .env.rocm`, AOTriton Flash Attention falls back to the math
+> kernel (~10× slower) and hipBLASLt tuning is disabled. The `setup.sh` script
+> writes the file but does NOT source it — your shell has to, once per session.
 
 On a single **RX 7800 XT (16 GB)**: FLUX.1-dev 1024² in **~72 seconds, 6.4 GB peak VRAM** (down from 144.9 s on the vanilla AMD path, at equal VRAM).
 
@@ -41,6 +47,23 @@ Full table: [BENCHMARKS.md](BENCHMARKS.md).
 ### Reference NVIDIA (from HuggingFace docs)
 RTX 4090 + `quantization + torch.compile + model_cpu_offload`: 32.3 s / 12.2 GB.
 We are ~2.24× slower on a single 7800 XT, which matches the raw FP16 compute ratio (7800 XT ≈ 37 TFLOPS vs 4090 ≈ 82 TFLOPS). **The software gap is closed** for this path.
+
+### Reproducing the benchmarks
+
+With the env sourced and `HF_TOKEN` exported:
+
+```bash
+# Full sweep (all 4 configs in the table above) — writes bench_results.json
+python bench.py --all
+
+# Single config (fastest way to verify your setup matches the reference)
+python bench.py --only group_offload_stream_record_8
+
+# Custom: pick a preset from configs/ explicitly
+python bench.py --config configs/rx_7800_xt.yaml
+```
+
+First run is ~30 s slower (AOTriton kernel compilation). Subsequent runs hit the persistent cache at `.cache/torchinductor/`.
 
 ---
 

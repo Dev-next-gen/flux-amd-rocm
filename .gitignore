@@ -40,3 +40,4 @@ logs/
 # Token / credentials
 .hf_token
 hf_token.txt
+bench_tensor_parallel_results.json
