@@ -1,0 +1,50 @@
+# Benchmarks
+
+All numbers: **FLUX.1-dev 1024² × 28 steps, guidance 3.5, bf16 int8 (torchao `Int8WeightOnlyConfig`).**
+
+## Single RX 7800 XT (gfx1101, 16 GB VRAM) — reference
+
+Stack: ROCm 7.1.52802, torch 2.9.1+rocm7.1.1, diffusers 0.37.1, torchao 0.14.1.
+`TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1` throughout.
+
+| Configuration | Latency | Step | Peak VRAM | Notes |
+|---|---|---|---|---|
+| Vanilla `sequential_cpu_offload` *(pre-patch baseline)* | **144.9 s** | 5.18 s | 6.39 GB | Only low-VRAM path that works on stock diffusers 0.37.1 — painfully slow |
+| `enable_model_cpu_offload` *(no patches needed)* | 82.1 s | 2.93 s | 12.57 GB | Fast but requires >12 GB headroom |
+| `enable_model_cpu_offload` + FP16 | 75.2 s | 2.69 s | 12.57 GB | Modest gain from fp16 on RDNA3 |
+| `group_offload` leaf + stream + **4 patches** *(V1 victory)* | 128.3 s | 4.58 s | 6.39 GB | First working port of Sayak's killer feature |
+| `group_offload` leaf + stream + **record_stream** (+5th patch) | 88.5 s | 3.16 s | 6.39 GB | +record_stream = -31 % |
+| **`group_offload` block8 + stream + record_stream *(this repo's default)*** | **72.5 s** | **2.59 s** | **6.39 GB** | **Champion low-VRAM config** |
+
+### Summary
+
+- **-50 % latency at equal VRAM** (144.9 s → 72.5 s, both at 6.39 GB peak)
+- **-49 % VRAM at equal latency** (12.57 GB model_offload → 6.39 GB block8, both ~75 s)
+- Ratio vs RTX 4090 reference (32.3 s): ~2.24× — matches the raw FP16 compute ratio (~2.2×), i.e. the software gap is closed for this path.
+
+### Image artifacts
+
+Every run saves a 1024×1024 PNG so you can visually confirm quality. See the `bench_outputs/` directory after running `python bench.py`.
+
+## Other cards
+
+| GPU | Arch | Latency | Peak VRAM | Submitter | Notes |
+|---|---|---|---|---|---|
+| RX 7800 XT | gfx1101 | 72.5 s | 6.39 GB | @leocamus | reference |
+| RX 7900 XTX | gfx1100 | — | — | *contribution welcome* | |
+| RX 7900 XT  | gfx1100 | — | — | *contribution welcome* | |
+| RX 7700 XT  | gfx1101 | — | — | *contribution welcome* | should match 7800 XT |
+| RX 7600 XT 16 GB | gfx1102 | — | — | *contribution welcome* | |
+| RX 6800 / 6800 XT | gfx1030 | — | — | *contribution welcome* | RDNA2, expect reduced perf |
+| MI300X | gfx942 | — | — | *contribution welcome* | datacenter; no offload needed |
+
+Open a PR adding a row with your numbers and `bench_results.json` — see [docs/adapt_your_gpu.md](docs/adapt_your_gpu.md).
+
+## Methodology
+
+- Same prompt, same seed, same steps for all rows in the first table.
+- Warmup: 4 steps before timing.
+- Latency = wall-clock time of the timed 28-step run including final VAE decode.
+- Peak VRAM = `torch.cuda.max_memory_allocated()` during the timed run.
+- All runs use `torch.cuda.synchronize()` at start and end of the timed region.
+- Numbers verified with 3 independent prompts (cat margarita / red dragon / 3 live parallel gens) — consistent at ±1 s total with <1 % VRAM variance.

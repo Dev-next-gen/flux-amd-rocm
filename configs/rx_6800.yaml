@@ -1,0 +1,15 @@
+# RX 6800 / 6800 XT / 6900 XT (gfx1030, 16 GB, RDNA2).
+# RDNA2 lacks WMMA int8 matrix instructions, so int8 quantization will be
+# slower than on RDNA3. The offload path still works but expect higher latency.
+# NOT YET INDEPENDENTLY BENCHED — contributions welcome.
+
+name: rx_6800
+arch: gfx1030
+dtype: bfloat16
+quantize: true
+offload: group_offload_stream_record
+num_blocks_per_group: 4      # smaller groups on older arch (less shader budget)
+notes: |
+  RDNA2 consumer. AOTriton Flash Attention support is experimental;
+  if you hit issues, unset TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL and
+  expect ~1.5-2× slowdown. Consider staying on bf16 (avoid fp16 casts).

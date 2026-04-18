@@ -1,0 +1,25 @@
+# Tested reference: ROCm 7.1, torch 2.9.1+rocm7.1.1, gfx1101 (RX 7800 XT)
+# Newer ROCm / torch will likely work; see docs/troubleshooting.md for version gotchas.
+
+# PyTorch must be the ROCm build. Install from the official AMD channel:
+#   pip install torch==2.9.1+rocm7.1.1 --index-url https://download.pytorch.org/whl/rocm7.1
+# (Requirements files cannot pin a wheel index, so we list it unpinned here.)
+torch>=2.9.0
+
+# torchao is pinned below 0.15 because 0.15+ requires torch >= 2.11,
+# which does not yet have a ROCm build. See https://github.com/pytorch/ao/issues/2919
+torchao>=0.13,<0.15
+
+# Diffusers 0.37 contains PR #13276 (the group_offload + torchao fix we rely on).
+diffusers>=0.37.0,<0.40.0
+
+# Standard companions.
+transformers>=4.40
+accelerate>=0.30
+sentencepiece
+protobuf
+safetensors
+huggingface_hub>=0.22
+
+# Pillow for image I/O.
+pillow

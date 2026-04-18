@@ -1,0 +1,45 @@
+# flux-amd-rocm — ready-to-run image for AMD Radeon RDNA3 cards.
+#
+# Build:
+#   docker build -t flux-amd-rocm:7.1 -f docker/Dockerfile.rocm7.1 .
+#
+# Run (needs --device=/dev/kfd --device=/dev/dri and accept FLUX.1-dev license):
+#   docker run --rm -it \
+#     --device=/dev/kfd --device=/dev/dri \
+#     --security-opt seccomp=unconfined \
+#     --group-add video \
+#     --ipc=host --shm-size=16g \
+#     -e HF_TOKEN=$HF_TOKEN \
+#     -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+#     -v $(pwd)/outputs:/workspace/outputs \
+#     flux-amd-rocm:7.1 \
+#     python generate.py "your prompt" --out outputs/img.png
+
+FROM rocm/pytorch:rocm7.1_ubuntu22.04_py3.12_pytorch_release_2.9.1
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    TOKENIZERS_PARALLELISM=false \
+    HF_HUB_DISABLE_TELEMETRY=1 \
+    TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1 \
+    PYTORCH_ALLOC_CONF=expandable_segments:True \
+    TORCH_BLAS_PREFER_HIPBLASLT=1
+
+# HSA_OVERRIDE_GFX_VERSION should be set at `docker run` time (depends on the host card).
+# Default assumes gfx1101 (RX 7800/7700 XT). Override for other cards.
+ENV HSA_OVERRIDE_GFX_VERSION=11.0.1 \
+    PYTORCH_ROCM_ARCH=gfx1101
+
+WORKDIR /workspace
+
+# Copy repo
+COPY . /workspace
+
+# Install Python deps. torch is provided by the base image.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Persist torchinductor + huggingface caches inside the image layer via volumes at runtime.
+ENV TORCHINDUCTOR_CACHE_DIR=/workspace/.cache/torchinductor
+RUN mkdir -p "$TORCHINDUCTOR_CACHE_DIR"
+
+CMD ["python", "generate.py", "--help"]

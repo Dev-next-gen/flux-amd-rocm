@@ -1,0 +1,22 @@
+# RX 7800 XT (gfx1101, 16 GB) — LOW SYSTEM RAM variant (24-32 GB system RAM).
+#
+# Same VRAM peak (~6.4 GB) as the main preset, but halves system RAM usage
+# by pinning tensors on-the-fly instead of pre-pinning them.
+#
+# Measured cost: +19 % latency (86.7 s vs 72.5 s baseline on RX 7800 XT).
+# The cost comes from pinning each tensor as it's transferred instead of
+# amortizing pinning across the whole run.
+#
+# Use this preset if your machine has less than ~48 GB system RAM and you
+# hit "Killed" / OOM during from_pretrained().
+
+name: rx_7800_xt_lowram
+arch: gfx1101
+dtype: bfloat16
+quantize: true
+offload: group_offload_stream_record
+num_blocks_per_group: 8
+low_cpu_mem: true             # ← the key difference
+notes: |
+  Recommended for consumer machines with 24-32 GB of system RAM.
+  If you have 48+ GB RAM, use `rx_7800_xt.yaml` instead (slightly faster).

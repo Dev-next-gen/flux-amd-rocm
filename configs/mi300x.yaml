@@ -1,0 +1,15 @@
+# AMD MI300X (gfx942, CDNA3, 192 GB HBM3).
+# Datacenter card with native Matrix Cores. NOT YET TESTED here — submit benches!
+# With 192 GB VRAM, there is no memory pressure; you can skip offloading entirely.
+
+name: mi300x
+arch: gfx942
+dtype: bfloat16
+quantize: false              # compute-bound, not memory-bound — skip int8
+offload: resident            # everything on GPU, no offload
+num_blocks_per_group: null
+notes: |
+  MI300X has 192 GB HBM3 and native Matrix Cores (tensor-like) — very different
+  profile from RDNA3 consumer. Recommended: run Flux at full bf16 residence
+  with torch.compile(mode="reduce-overhead"). If testing, please contribute
+  benchmarks via PR including any ROCm/CK/AITER kernel integrations you used.

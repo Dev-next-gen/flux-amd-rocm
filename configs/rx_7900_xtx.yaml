@@ -1,0 +1,15 @@
+# RX 7900 XTX / XT (gfx1100, 24 / 20 GB).
+# NOT YET INDEPENDENTLY BENCHED. Expected behavior based on same RDNA3 family.
+# Please contribute your benchmark via PR!
+
+name: rx_7900_xtx
+arch: gfx1100
+dtype: bfloat16
+quantize: true
+offload: model_cpu_offload    # 24 GB allows the faster path
+num_blocks_per_group: null
+notes: |
+  With 24 GB VRAM budget, enable_model_cpu_offload is preferred (faster,
+  no stream overhead). If you want the smallest possible VRAM footprint
+  (e.g. to run alongside an LLM on the same card), switch to
+  offload: group_offload_stream_record with num_blocks_per_group: 8.
