@@ -42,7 +42,20 @@ Full table: [BENCHMARKS.md](BENCHMARKS.md).
 | **`group_offload` + `use_stream=True` + `record_stream=True` (this repo)** | **~80 s** | **6.39 GB** | **Fastest at low VRAM** (72–88 s observed, see note below) |
 | `enable_model_cpu_offload` + FP16 (this repo) | 75.2 s | 12.57 GB | Fastest if you have 16 GB budget |
 
-**Bottom line**: ~50 % latency reduction at equal VRAM on consumer AMD, or 50 % VRAM reduction at equal latency. You pick.
+**Bottom line**: ~45 % latency reduction at equal VRAM on consumer AMD, or 50 % VRAM reduction at equal latency. You pick.
+
+### How we got there — the patch-by-patch progression
+
+Each row is the same `group_offload` path at 6.39 GB VRAM, with one additional fix applied:
+
+| Step | Patches applied | Latency | Δ vs baseline |
+|---|---|---|---|
+| Vanilla `sequential_cpu_offload` (ROCm state of the art pre-patch) | — | 144.9 s | — |
+| First port: `group_offload` + `use_stream=True` (4 patches) | 1–4 | 128.3 s | **-11 %** |
+| + 5th patch: `record_stream` dispatch on AQT | 1–5 | 88.5 s | **-31 %** |
+| + block8 tuning *(this repo's default)* | 1–5 | ~80 s | **-45 %** |
+
+Patch #5 (`record_stream`) is the one that unlocks the big jump: without it, the custom transfer stream can't signal to PyTorch's allocator that the weight tensor is still in use, so the allocator keeps stalling on false conflicts. See [`docs/bugs.md`](docs/bugs.md) for the full technical trace.
 
 > **On reproducibility:** the fastest clean run we measured was 72.5 s. On a fresh boot with a warm Triton cache we hit 72–79 s. After sustained multi-GPU workloads (thermal drift + kernel-cache churn) the same config stabilises at 85–88 s. All in the same 6.39 GB VRAM envelope. The 2.2–2.7× range vs a 4090 brackets the raw FP16 TFLOPS ratio exactly.
 

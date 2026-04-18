@@ -22,6 +22,19 @@ Stack: ROCm 7.1.52802, torch 2.9.1+rocm7.1.1, diffusers 0.37.1, torchao 0.14.1.
 - **-49 % VRAM at equal latency** (12.57 GB model_offload → 6.39 GB block8, both ~75–80 s)
 - Ratio vs RTX 4090 reference (32.3 s): 2.2–2.7× — brackets the raw FP16 compute ratio (~2.22×), i.e. the software gap is closed for this path.
 
+### Patch-by-patch progression on the low-VRAM path
+
+Same config (`group_offload` + int8, 6.39 GB VRAM), only the patch set varies:
+
+| Step | Patches | Latency | Δ vs baseline |
+|---|---|---|---|
+| Vanilla `sequential_cpu_offload` | none | 144.9 s | — |
+| `group_offload` + `use_stream=True` | 1–4 | 128.3 s | **-11 %** |
+| + `record_stream` dispatch (5th patch) | 1–5 | 88.5 s | **-31 %** |
+| + block8 tuning *(this repo's default)* | 1–5 | ~80 s | **-45 %** |
+
+The big -20 % jump between steps 2 and 3 comes from unlocking async weight prefetch: before patch 5, the custom transfer stream can't signal the allocator that the weight is in use, so the allocator serialises on false conflicts. With `record_stream` registered on `AffineQuantizedTensor`, the allocator stops blocking and the stream actually overlaps with compute. Full technical trace: [`docs/bugs.md` § Bug 5](docs/bugs.md).
+
 > **On variance:** the 72.5 s best number is from a clean boot with a warm Triton cache and cool GPU. Everyday runs after moderate machine load land in the 79–88 s range. VRAM peak is rock-stable at 6.39 GB across all conditions. The ratio vs a 4090 stays within the hardware FP16 envelope in all cases.
 
 ### Image artifacts
