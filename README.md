@@ -53,13 +53,14 @@ We are ~2.24× slower on a single 7800 XT, which matches the raw FP16 compute ra
 With the env sourced and `HF_TOKEN` exported:
 
 ```bash
-# Full sweep (all 4 configs in the table above) — writes bench_results.json
+# Full sweep (sequential_cpu_offload, model_cpu_offload, group_offload+stream+record)
+# Writes bench_results.json. ~5-10 min on a 7800 XT.
 python bench.py --all
 
-# Single config (fastest way to verify your setup matches the reference)
-python bench.py --only group_offload_stream_record_8
+# Single run using an auto-detected preset (fastest way to verify setup)
+python bench.py
 
-# Custom: pick a preset from configs/ explicitly
+# Force a specific preset
 python bench.py --config configs/rx_7800_xt.yaml
 ```
 
