@@ -25,7 +25,7 @@ python generate.py "a dragon coiled around a medieval tower at sunset" \
 > kernel (~10× slower) and hipBLASLt tuning is disabled. The `setup.sh` script
 > writes the file but does NOT source it — your shell has to, once per session.
 
-On a single **RX 7800 XT (16 GB)**: FLUX.1-dev 1024² in **~72 seconds, 6.4 GB peak VRAM** (down from 144.9 s on the vanilla AMD path, at equal VRAM).
+On a single **RX 7800 XT (16 GB)**: FLUX.1-dev 1024² in **~80 seconds, 6.4 GB peak VRAM** (down from 144.9 s on the vanilla AMD path, at equal VRAM — best clean run 72.5 s; see [variance note](#single-rx-7800-xt-gfx1101-16-gb-flux1-dev-1024--28-steps-bf16-int8) below).
 
 ---
 
