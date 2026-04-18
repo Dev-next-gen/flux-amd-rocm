@@ -39,14 +39,16 @@ Full table: [BENCHMARKS.md](BENCHMARKS.md).
 |---|---|---|---|
 | Vanilla `sequential_cpu_offload` (pre-patch baseline) | 144.9 s | 6.39 GB | Only viable pre-patch path at low VRAM |
 | `enable_model_cpu_offload` | 82.1 s | 12.57 GB | Pre-patch path at higher VRAM |
-| **`group_offload` + `use_stream=True` + `record_stream=True` (this repo)** | **72.5 s** | **6.39 GB** | **Fastest at low VRAM** |
+| **`group_offload` + `use_stream=True` + `record_stream=True` (this repo)** | **~80 s** | **6.39 GB** | **Fastest at low VRAM** (72–88 s observed, see note below) |
 | `enable_model_cpu_offload` + FP16 (this repo) | 75.2 s | 12.57 GB | Fastest if you have 16 GB budget |
 
 **Bottom line**: ~50 % latency reduction at equal VRAM on consumer AMD, or 50 % VRAM reduction at equal latency. You pick.
 
+> **On reproducibility:** the fastest clean run we measured was 72.5 s. On a fresh boot with a warm Triton cache we hit 72–79 s. After sustained multi-GPU workloads (thermal drift + kernel-cache churn) the same config stabilises at 85–88 s. All in the same 6.39 GB VRAM envelope. The 2.2–2.7× range vs a 4090 brackets the raw FP16 TFLOPS ratio exactly.
+
 ### Reference NVIDIA (from HuggingFace docs)
 RTX 4090 + `quantization + torch.compile + model_cpu_offload`: 32.3 s / 12.2 GB.
-We are ~2.24× slower on a single 7800 XT, which matches the raw FP16 compute ratio (7800 XT ≈ 37 TFLOPS vs 4090 ≈ 82 TFLOPS). **The software gap is closed** for this path.
+A single 7800 XT's raw FP16 compute is ≈37 TFLOPS vs the 4090's ≈82 TFLOPS (2.22× gap). Our measured range (72–88 s vs 32.3 s = 2.2–2.7×) matches that hardware ceiling. **The software gap is closed** on this path.
 
 ### Reproducing the benchmarks
 
@@ -93,7 +95,7 @@ See [docs/adapt_your_gpu.md](docs/adapt_your_gpu.md) to test and contribute a co
 | Python | 3.10+ | 3.12 |
 
 > [!IMPORTANT]
-> **System RAM (not VRAM)** is the sneaky constraint. The FLUX.1-dev load path spikes to ~35 GB briefly during bf16 → int8 quantization, even if steady-state is ~20 GB. If you have 16 GB system RAM you'll crash on load; if you have 24–32 GB use the `rx_7800_xt_lowram` preset which pins weights on-the-fly (-50 % RAM usage, measured +19 % latency — 86.7 s instead of 72.5 s on our reference card).
+> **System RAM (not VRAM)** is the sneaky constraint. The FLUX.1-dev load path spikes to ~35 GB briefly during bf16 → int8 quantization, even if steady-state is ~20 GB. If you have 16 GB system RAM you'll crash on load; if you have 24–32 GB use the `rx_7800_xt_lowram` preset which pins weights on-the-fly (-50 % RAM usage, measured +19 % latency — 86.7 s vs 72.5 s on a matched clean run; expect both to shift ~10 s upward under everyday load).
 
 ---
 

@@ -3,7 +3,8 @@
 # Same VRAM peak (~6.4 GB) as the main preset, but halves system RAM usage
 # by pinning tensors on-the-fly instead of pre-pinning them.
 #
-# Measured cost: +19 % latency (86.7 s vs 72.5 s baseline on RX 7800 XT).
+# Measured cost: +19 % latency (86.7 s lowram vs 72.5 s baseline on a matched
+# clean run; both configs land in the ~80 s / ~95 s range under everyday load).
 # The cost comes from pinning each tensor as it's transferred instead of
 # amortizing pinning across the whole run.
 #

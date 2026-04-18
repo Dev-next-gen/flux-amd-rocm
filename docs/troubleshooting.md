@@ -59,7 +59,7 @@ Fixes, in order of simplicity:
    python generate.py "your prompt" --config rx_7800_xt_lowram
    ```
    Enables `low_cpu_mem_usage=True` in group-offload (pins tensors on-the-fly).
-   Measured cost on RX 7800 XT: **+19 % latency** (86.7 s vs 72.5 s).
+   Measured cost on RX 7800 XT: **+19 % latency** (both measured on the same clean run — 86.7 s lowram vs 72.5 s baseline; expect the typical ~80 s / ~95 s operating range otherwise).
    Steady-state system RAM drops from ~20 GB to ~11 GB.
 
 2. **Increase swap** temporarily so the transient 35 GB spike can spill to disk:

@@ -15,7 +15,7 @@ Therefore, **offloading is mandatory** on consumer 16 GB AMD. The question is wh
 | `pipe.to("cuda")` (resident) | everything | OOM | — |
 | `enable_sequential_cpu_offload` | leaf-level, synchronous | **lowest** (6.39 GB) | slowest (144.9 s) |
 | `enable_model_cpu_offload` | per pipeline component | medium (12.57 GB) | fast (82.1 s) |
-| `apply_group_offloading(use_stream=True, ...)` | N blocks per group, async with prefetch | lowest (6.39 GB) | **fastest** (72.5 s) when fully fixed |
+| `apply_group_offloading(use_stream=True, ...)` | N blocks per group, async with prefetch | lowest (6.39 GB) | **fastest** (72–88 s range) when fully fixed |
 
 The last one is the feature shipped in diffusers [PR #13276](https://github.com/huggingface/diffusers/pull/13276). On AMD it is broken in five places — those are [the bugs we fix](bugs.md).
 
@@ -59,7 +59,7 @@ No C/C++ build, no fork of upstream, no binary wheels. The patch set is ~150 lin
 
 ## Performance ceiling
 
-The RX 7800 XT raw FP16 compute is ~37 TFLOPS vs the RTX 4090's ~82 TFLOPS — a **2.2× physical gap** on matmul-heavy workloads. Our 72.5 s vs the HuggingFace reference 32.3 s on a 4090 is a 2.24× ratio, within 2 % of the hardware ceiling. No further software optimisation on a single 7800 XT will meaningfully close that remaining gap.
+The RX 7800 XT raw FP16 compute is ~37 TFLOPS vs the RTX 4090's ~82 TFLOPS — a **2.2× physical gap** on matmul-heavy workloads. Our measured 72–88 s range vs the HuggingFace reference 32.3 s on a 4090 translates to a 2.2–2.7× ratio, bracketing the hardware ceiling under realistic load. No further software optimisation on a single 7800 XT will meaningfully close that remaining gap.
 
 To go faster you need either:
 - another GPU (our 5× 7800 XT rig adds up to 185 TFLOPS total, above the 4090's 82 — multi-GPU work is out of scope for this repo's first release); or

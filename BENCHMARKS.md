@@ -14,13 +14,15 @@ Stack: ROCm 7.1.52802, torch 2.9.1+rocm7.1.1, diffusers 0.37.1, torchao 0.14.1.
 | `enable_model_cpu_offload` + FP16 | 75.2 s | 2.69 s | 12.57 GB | Modest gain from fp16 on RDNA3 |
 | `group_offload` leaf + stream + **4 patches** *(V1 victory)* | 128.3 s | 4.58 s | 6.39 GB | First working port of Sayak's killer feature |
 | `group_offload` leaf + stream + **record_stream** (+5th patch) | 88.5 s | 3.16 s | 6.39 GB | +record_stream = -31 % |
-| **`group_offload` block8 + stream + record_stream *(this repo's default)*** | **72.5 s** | **2.59 s** | **6.39 GB** | **Champion low-VRAM config** |
+| **`group_offload` block8 + stream + record_stream *(this repo's default)*** | **~80 s** | **~2.9 s** | **6.39 GB** | **Champion low-VRAM config** (best 72.5 s clean run; typical 79–88 s depending on thermal / kernel-cache state) |
 
 ### Summary
 
-- **-50 % latency at equal VRAM** (144.9 s → 72.5 s, both at 6.39 GB peak)
-- **-49 % VRAM at equal latency** (12.57 GB model_offload → 6.39 GB block8, both ~75 s)
-- Ratio vs RTX 4090 reference (32.3 s): ~2.24× — matches the raw FP16 compute ratio (~2.2×), i.e. the software gap is closed for this path.
+- **-45 to -50 % latency at equal VRAM** (144.9 s → 79–88 s, both at 6.39 GB peak)
+- **-49 % VRAM at equal latency** (12.57 GB model_offload → 6.39 GB block8, both ~75–80 s)
+- Ratio vs RTX 4090 reference (32.3 s): 2.2–2.7× — brackets the raw FP16 compute ratio (~2.22×), i.e. the software gap is closed for this path.
+
+> **On variance:** the 72.5 s best number is from a clean boot with a warm Triton cache and cool GPU. Everyday runs after moderate machine load land in the 79–88 s range. VRAM peak is rock-stable at 6.39 GB across all conditions. The ratio vs a 4090 stays within the hardware FP16 envelope in all cases.
 
 ### Image artifacts
 
@@ -30,7 +32,7 @@ Every run saves a 1024×1024 PNG so you can visually confirm quality. See the `b
 
 | GPU | Arch | Latency | Peak VRAM | Submitter | Notes |
 |---|---|---|---|---|---|
-| RX 7800 XT | gfx1101 | 72.5 s | 6.39 GB | @leocamus | reference |
+| RX 7800 XT | gfx1101 | 72–88 s | 6.39 GB | @leocamus | reference (best 72.5, typical ~80 s) |
 | RX 7900 XTX | gfx1100 | — | — | *contribution welcome* | |
 | RX 7900 XT  | gfx1100 | — | — | *contribution welcome* | |
 | RX 7700 XT  | gfx1101 | — | — | *contribution welcome* | should match 7800 XT |

@@ -157,7 +157,7 @@ RuntimeError: Cannot swap t1 because it has weakref associated with it
 
 `torch.compile` attaches weakrefs to compiled tensors; `torch.utils.swap_tensors` refuses to swap when a weakref is attached; the offload hook's `.to()` path relies on swap semantics. Same issue was also seen pre-patches with `enable_model_cpu_offload + compile`.
 
-Did not reproduce-test on CUDA. Needs isolation to determine whether this is a latent torchao bug, an `accelerate` bug, or a `torch.compile` interaction. **Skipping compile in the shipped configs** is the pragmatic choice; everything else on the low-VRAM path works and hits 72.5 s without it.
+Did not reproduce-test on CUDA. Needs isolation to determine whether this is a latent torchao bug, an `accelerate` bug, or a `torch.compile` interaction. **Skipping compile in the shipped configs** is the pragmatic choice; everything else on the low-VRAM path works and hits the 72–88 s envelope without it.
 
 ### torchao ≥ 0.15 requires torch ≥ 2.11 (no ROCm wheel)
 

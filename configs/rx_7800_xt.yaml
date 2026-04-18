@@ -1,7 +1,9 @@
 # RX 7800 XT (gfx1101, 16 GB) — reference card for this repo.
 # Tested on ROCm 7.1.52802, torch 2.9.1+rocm7.1.1, torchao 0.14.1, diffusers 0.37.1.
 # Reference bench (single GPU, FLUX.1-dev 1024² × 28 steps, bf16 int8):
-#   - 72.5 s total / 6.39 GB peak VRAM
+#   - latency 72–88 s (best 72.5 s clean run, typical ~80 s after moderate
+#     machine load — thermal + Triton kernel-cache state)
+#   - 6.39 GB peak VRAM (rock stable across all conditions)
 
 name: rx_7800_xt
 arch: gfx1101
